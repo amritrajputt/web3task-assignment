@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { errorHandler } from './src/common';
 import { assertTokenSecrets } from './src/common/tokens/jwt.auth.tokens';
 import authRouter from './src/module/auth/auth.routes';
+import roomRouter from './src/module/room/room.routes';
 
 assertTokenSecrets();
 
@@ -19,6 +20,7 @@ app.use(cors({ origin: frontendOrigin, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/auth', authRouter);
+app.use('/api/rooms', roomRouter);
 app.use(errorHandler);
 
 const PORT = Number(process.env.PORT ?? 3000);

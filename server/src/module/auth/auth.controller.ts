@@ -1,4 +1,4 @@
-import type { RequestHandler } from 'express';
+import type { Request, Response } from 'express';
 import { ApiResponse, AppError } from '../../common';
 import { AuthService, type AuthResult, type PublicUser } from './auth.service';
 import {
@@ -8,7 +8,7 @@ import {
 } from './auth.cookies';
 
 function sendAuthResponse(
-  res: Parameters<RequestHandler>[1],
+  res: Response,
   result: AuthResult,
   statusCode: number,
   message: string,
@@ -22,7 +22,7 @@ function sendAuthResponse(
 }
 
 export class AuthController {
-  static register: RequestHandler = async (req, res) => {
+  static register = async (req: Request, res: Response) => {
     const result = await AuthService.register(
       req.body.name,
       req.body.email,
@@ -32,12 +32,12 @@ export class AuthController {
     sendAuthResponse(res, result, 201, 'Account created');
   };
 
-  static login: RequestHandler = async (req, res) => {
+  static login = async (req: Request, res: Response) => {
     const result = await AuthService.login(req.body.email, req.body.password);
     sendAuthResponse(res, result, 200, 'Login successful');
   };
 
-  static refresh: RequestHandler = async (req, res) => {
+  static refresh = async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
     if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
       throw AppError.unauthorized('Refresh token cookie required');
@@ -47,7 +47,7 @@ export class AuthController {
     sendAuthResponse(res, result, 200, 'Tokens refreshed');
   };
 
-  static logout: RequestHandler = async (req, res) => {
+  static logout = async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
     clearAuthCookies(res);
 
@@ -58,7 +58,7 @@ export class AuthController {
     res.status(200).json(ApiResponse.ok(null, 'Logged out'));
   };
 
-  static me: RequestHandler = async (_req, res) => {
+  static me = async (_req: Request, res: Response) => {
     const user = await AuthService.getCurrentUser(res.locals.auth.id);
     res.status(200).json(ApiResponse.ok(user));
   };
