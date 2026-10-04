@@ -19,7 +19,7 @@ const BCRYPT_ROUNDS = 12;
 
 export type PublicUser = Pick<
   User,
-  'id' | 'name' | 'email' | 'isVerified' | 'createdAt' | 'updatedAt'
+  'id' | 'name' | 'email'  | 'createdAt' | 'updatedAt'
 >;
 
 export type AuthResult = {
@@ -32,7 +32,6 @@ const publicUserColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
-  isVerified: users.isVerified,
   createdAt: users.createdAt,
   updatedAt: users.updatedAt,
 };
