@@ -2,9 +2,10 @@ import {
   boolean,
   integer,
   pgTable,
+  primaryKey,
   timestamp,
   varchar,
-  uuid
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -12,14 +13,33 @@ export const users = pgTable('users', {
   name: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
   password: varchar({ length: 60 }).notNull(),
-  isVerified: boolean().notNull().default(false),
-  otpSecret: varchar({ length: 255 }),
-  otpExpiresAt: integer(),
   refreshToken: varchar({ length: 64 }),
   refreshTokenExpiresAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+export const rooms = pgTable('rooms', {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: uuid().notNull().references(() => users.id),
+  name: varchar({ length: 255 }).notNull(),
+  password: varchar({ length: 255 }),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+export const roomModerators = pgTable(
+  'room_moderators',
+  {
+    roomId: uuid()
+      .notNull()
+      .references(() => rooms.id, { onDelete: 'cascade' }),
+    moderatorId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+  },
+  (table) => [primaryKey({ columns: [table.roomId, table.moderatorId] })],
+);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
