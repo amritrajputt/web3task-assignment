@@ -1,64 +1,53 @@
 import type { RequestHandler } from 'express';
-import type { ParamsDictionary } from 'express-serve-static-core';
-import type { z } from 'zod';
 import { ApiResponse, AppError } from '../../common';
-import { AuthService, type PublicUser } from './auth.service';
-import { loginSchema, registerSchema } from './auth.dto';
+import { AuthService, type AuthResult, type PublicUser } from './auth.service';
 import {
   clearAuthCookies,
   REFRESH_COOKIE_NAME,
   setAuthCookies,
 } from './auth.cookies';
 
+function sendAuthResponse(
+  res: Parameters<RequestHandler>[1],
+  result: AuthResult,
+  statusCode: number,
+  message: string,
+): void {
+  setAuthCookies(res, result);
+  res.status(statusCode).json(
+    statusCode === 201
+      ? ApiResponse.created({ user: result.user }, message)
+      : ApiResponse.ok({ user: result.user }, message),
+  );
+}
+
 export class AuthController {
-  static register: RequestHandler<
-    ParamsDictionary,
-    ApiResponse<{ user: PublicUser }>,
-    z.infer<typeof registerSchema>
-  > = async (req, res) => {
+  static register: RequestHandler = async (req, res) => {
     const result = await AuthService.register(
       req.body.name,
       req.body.email,
       req.body.password,
     );
-    setAuthCookies(res, result);
-    res
-      .status(201)
-      .json(ApiResponse.created({ user: result.user }, 'Account created'));
+
+    sendAuthResponse(res, result, 201, 'Account created');
   };
 
-  static login: RequestHandler<
-    ParamsDictionary,
-    ApiResponse<{ user: PublicUser }>,
-    z.infer<typeof loginSchema>
-  > = async (req, res) => {
+  static login: RequestHandler = async (req, res) => {
     const result = await AuthService.login(req.body.email, req.body.password);
-    setAuthCookies(res, result);
-    res
-      .status(200)
-      .json(ApiResponse.ok({ user: result.user }, 'Login successful'));
+    sendAuthResponse(res, result, 200, 'Login successful');
   };
 
-  static refresh: RequestHandler<
-    ParamsDictionary,
-    ApiResponse<{ user: PublicUser }>
-  > = async (req, res) => {
+  static refresh: RequestHandler = async (req, res) => {
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
     if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
       throw AppError.unauthorized('Refresh token cookie required');
     }
 
     const result = await AuthService.refresh(refreshToken);
-    setAuthCookies(res, result);
-    res
-      .status(200)
-      .json(ApiResponse.ok({ user: result.user }, 'Tokens refreshed'));
+    sendAuthResponse(res, result, 200, 'Tokens refreshed');
   };
 
-  static logout: RequestHandler<
-    ParamsDictionary,
-    ApiResponse<null>
-  > = async (req, res) => {
+  static logout: RequestHandler = async (req, res) => {
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
     clearAuthCookies(res);
 
@@ -69,10 +58,7 @@ export class AuthController {
     res.status(200).json(ApiResponse.ok(null, 'Logged out'));
   };
 
-  static me: RequestHandler<
-    ParamsDictionary,
-    ApiResponse<PublicUser>
-  > = async (_req, res) => {
+  static me: RequestHandler = async (_req, res) => {
     const user = await AuthService.getCurrentUser(res.locals.auth.id);
     res.status(200).json(ApiResponse.ok(user));
   };
