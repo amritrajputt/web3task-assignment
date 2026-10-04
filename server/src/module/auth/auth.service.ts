@@ -58,15 +58,6 @@ function issueTokens(userId: string): Pick<AuthResult, 'accessToken' | 'refreshT
   };
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    error.code === '23505'
-  );
-}
-
 export class AuthService {
   static async register(
     name: string,
@@ -78,30 +69,23 @@ export class AuthService {
     const userId = randomUUID();
     const tokens = issueTokens(userId);
 
-    try {
-      const [user] = await db
-        .insert(users)
-        .values({
-          id: userId,
-          name: name.trim(),
-          email: normalizedEmail,
-          password: passwordHash,
-          refreshToken: hashRefreshToken(tokens.refreshToken),
-          refreshTokenExpiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
-        })
-        .returning(publicUserColumns);
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userId,
+        name: name.trim(),
+        email: normalizedEmail,
+        password: passwordHash,
+        refreshToken: hashRefreshToken(tokens.refreshToken),
+        refreshTokenExpiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+      })
+      .returning(publicUserColumns);
 
-      if (!user) {
-        throw new Error('User insert returned no row');
-      }
-
-      return { user, ...tokens };
-    } catch (error) {
-      if (isUniqueViolation(error)) {
-        throw AppError.conflict('An account with this email already exists');
-      }
-      throw error;
+    if (!user) {
+      throw new Error('User insert returned no row');
     }
+
+    return { user, ...tokens };
   }
 
   static async login(email: string, password: string): Promise<AuthResult> {
