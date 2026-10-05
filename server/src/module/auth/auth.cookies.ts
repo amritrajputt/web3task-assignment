@@ -15,10 +15,11 @@ type CookieResponse = {
 };
 
 function cookieOptions(path: string, maxAge: number): CookieOptions {
+  const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     path,
     maxAge,
   };

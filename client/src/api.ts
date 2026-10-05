@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+const API_BASE = `${BACKEND_URL}/api`;
 
 interface ApiResponse<T> {
   success: boolean;

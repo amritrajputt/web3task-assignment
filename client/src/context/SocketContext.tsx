@@ -124,7 +124,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const socket = io(window.location.origin, {
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+    const socketUrl = backendUrl || window.location.origin;
+
+    const socket = io(socketUrl, {
       path: '/api/socket.io',
       withCredentials: true,
       transports: ['websocket', 'polling'],
