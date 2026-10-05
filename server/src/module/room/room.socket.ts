@@ -447,7 +447,12 @@ function broadcastParticipants(io: Server, room: WatchRoom): void {
 export function attachRoomSockets(server: HttpServer, origin: string): Server {
   const io = new Server(server, {
     path: '/api/socket.io',
-    cors: { origin, credentials: true },
+    cors: {
+      origin: (reqOrigin, callback) => {
+        callback(null, true);
+      },
+      credentials: true,
+    },
   });
 
   io.use((socket, next) => {
