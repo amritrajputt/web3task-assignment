@@ -4,13 +4,6 @@ A synchronized watch-party platform built with React, Node.js, Express, Socket.I
 
 ---
 
-## Live Deployment
-
-- **Application URL:** https://your-deployment-url.onrender.com *(Update upon deployment)*
-- **API Health Check:** https://your-deployment-url.onrender.com/api/health
-
----
-
 ## Overview
 
 In a typical video-sharing scenario, participants manually hit play or pause, leading to desynchronized playback across different internet connections. This system provides an authoritative room-based playback engine:
