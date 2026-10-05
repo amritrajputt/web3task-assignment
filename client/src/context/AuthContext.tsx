@@ -6,7 +6,13 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { authApi, type User, ApiError } from '../api';
+import {
+  authApi,
+  type User,
+  ApiError,
+  getAccessToken,
+  getRefreshToken,
+} from '../api';
 
 interface AuthContextType {
   user: User | null;
@@ -24,25 +30,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!getAccessToken() && !getRefreshToken()) {
+      setLoading(false);
+      return;
+    }
+
     (async () => {
       try {
         const res = await authApi.me();
         if (!cancelled && res.data) setUser(res.data);
       } catch (err) {
-
         if (err instanceof ApiError && err.statusCode === 401) {
           try {
             const res = await authApi.refresh();
             if (!cancelled && res.data) setUser(res.data.user);
           } catch {
-
+            if (!cancelled) setUser(null);
           }
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

@@ -4,10 +4,20 @@ import { verifyToken } from '../../common/tokens/jwt.auth.tokens';
 import { ACCESS_COOKIE_NAME } from './auth.cookies';
 
 export const authenticate: RequestHandler = (req, res, next) => {
-  const token = req.cookies?.[ACCESS_COOKIE_NAME];
+  let token: string | undefined;
 
-  if (typeof token !== 'string' || token.length === 0) {
-    next(AppError.unauthorized('Access token cookie required'));
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if (
+    typeof req.cookies?.[ACCESS_COOKIE_NAME] === 'string' &&
+    req.cookies[ACCESS_COOKIE_NAME].length > 0
+  ) {
+    token = req.cookies[ACCESS_COOKIE_NAME];
+  }
+
+  if (!token) {
+    next(AppError.unauthorized('Access token required'));
     return;
   }
 

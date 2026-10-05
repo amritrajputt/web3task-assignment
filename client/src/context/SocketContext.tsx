@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { getAccessToken } from '../api';
 
 export interface Participant {
   id: string;
@@ -127,8 +128,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
     const socketUrl = backendUrl || window.location.origin;
 
+    const token = getAccessToken();
     const socket = io(socketUrl, {
       path: '/api/socket.io',
+      auth: token ? { token } : undefined,
       withCredentials: true,
       transports: ['websocket', 'polling'],
     });
