@@ -1,6 +1,4 @@
 import {
-  boolean,
-  integer,
   pgTable,
   primaryKey,
   timestamp,
@@ -43,3 +41,7 @@ export const roomModerators = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Room = typeof rooms.$inferSelect;
+export type NewRoom = typeof rooms.$inferInsert;
+export type RoomModerator = typeof roomModerators.$inferSelect;
+

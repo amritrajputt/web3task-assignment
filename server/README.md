@@ -1,54 +1,47 @@
 # Server
 
-Install dependencies from this directory:
+Bun / Node.js backend providing REST APIs and WebSocket server for the Watch Party system.
+
+## Setup
 
 ```bash
 bun install
 ```
 
-Set `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `FRONTEND_URL` in
-`server/.env`. Use different randomly generated values for the two JWT secrets.
-Each JWT secret must be at least 32 characters. `FRONTEND_URL` must be the
-frontend origin; `PORT` is optional and defaults to `3000`.
+Configure `server/.env`:
+- `PORT=8000`
+- `FRONTEND_URL=http://localhost:3000`
+- `DATABASE_URL=postgresql://...`
+- `JWT_SECRET=your-32-character-secret`
+- `JWT_REFRESH_SECRET=your-32-character-refresh-secret`
 
-## Scripts
-
+Apply migrations:
 ```bash
-bun run dev
-bun run build
-bun run start
-bun run test
-bun run db:generate
 bun run db:migrate
-bun run db:studio
 ```
 
-Run `db:generate` after changing `src/db/schema.ts`, then apply pending
-migrations with `db:migrate`.
+Run dev server:
+```bash
+bun run dev
+```
 
-## Authentication API
+## API Modules
 
-All routes are mounted under `/api/auth`:
-
+### Authentication (`/api/auth`)
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/register` | Create an account and set access and refresh cookies |
-| `POST` | `/login` | Verify credentials and set access and refresh cookies |
-| `POST` | `/refresh` | Rotate the refresh cookie and set new tokens |
-| `POST` | `/logout` | Revoke the refresh cookie if present and clear both auth cookies |
-| `GET` | `/me` | Return the current user; requires the access cookie |
+| `POST` | `/register` | Create account and set HTTP-only JWT cookies |
+| `POST` | `/login` | Verify credentials and set HTTP-only JWT cookies |
+| `POST` | `/refresh` | Rotate refresh token and set new tokens |
+| `POST` | `/logout` | Revoke tokens and clear auth cookies |
+| `GET` | `/me` | Get authenticated user profile |
 
-Register accepts `{ "name": "...", "email": "...", "password": "..." }`;
-login accepts `{ "email": "...", "password": "..." }`. Passwords must be
-8-128 characters. Request validation uses the shared DTO middleware.
+### Rooms (`/api/rooms`)
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/` | List all available rooms |
+| `POST` | `/` | Create a new room (User becomes Host) |
+| `GET` | `/:id` | Get room metadata and verify password if protected |
 
-Tokens are not returned in JSON. Both are sent as HttpOnly cookies: the access
-cookie is scoped to `/api`, and the refresh cookie is scoped to `/api/auth`.
-Cookies use SameSite=Lax and Secure in production. Browser clients must send
-credentialed requests (for example, `fetch` with `credentials: "include"`).
-Refresh tokens expire after seven days and are rotated; only a SHA-256 hash is
-stored in the database. Passwords are hashed using bcrypt. Access tokens expire
-after 15 minutes.
-
-The schema has nullable OTP fields for a future verification flow; the current
-routes do not send or verify email OTPs.
+### Real-Time WebSockets (`/api/socket.io`)
+Socket.IO connection authenticated via the user's HTTP-only JWT cookie. Manages real-time room presence, video state broadcasting, video queues, participant requests, chat messages, and reactions.
