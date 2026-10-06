@@ -185,41 +185,72 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     socket.on('playback:sync', (data: PlaybackState & { action?: string }) => {
-      setRoomState((prev) => ({
-        ...prev,
-        playback: {
-          videoId: data.videoId,
-          playing: data.playing,
-          currentTime: data.currentTime,
-          updatedAt: data.updatedAt,
-        },
-      }));
+      setRoomState((prev) => {
+        // Skip if nothing actually changed (prevents re-render loops from duplicate events)
+        if (
+          prev.playback.videoId === data.videoId &&
+          prev.playback.playing === data.playing &&
+          Math.abs(prev.playback.currentTime - data.currentTime) < 1
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          playback: {
+            videoId: data.videoId,
+            playing: data.playing,
+            currentTime: data.currentTime,
+            updatedAt: data.updatedAt,
+          },
+        };
+      });
     });
 
     socket.on('sync_state', (data) => {
-      setRoomState((prev) => ({
-        ...prev,
-        playback: {
-          ...prev.playback,
-          videoId: data.videoId ?? prev.playback.videoId,
-          playing: data.playState === 'playing',
-          currentTime: data.currentTime ?? prev.playback.currentTime,
-          updatedAt: Date.now(),
-        },
-      }));
+      setRoomState((prev) => {
+        const newVideoId = data.videoId ?? prev.playback.videoId;
+        const newPlaying = data.playState === 'playing';
+        const newTime = data.currentTime ?? prev.playback.currentTime;
+
+        // Skip if nothing actually changed (prevents re-render loops)
+        if (
+          prev.playback.videoId === newVideoId &&
+          prev.playback.playing === newPlaying &&
+          Math.abs(prev.playback.currentTime - newTime) < 1
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          playback: {
+            ...prev.playback,
+            videoId: newVideoId,
+            playing: newPlaying,
+            currentTime: newTime,
+            updatedAt: Date.now(),
+          },
+        };
+      });
     });
 
     socket.on('change_video', (data: { videoId: string }) => {
-      setRoomState((prev) => ({
-        ...prev,
-        playback: {
-          ...prev.playback,
-          videoId: data.videoId,
-          currentTime: 0,
-          playing: false,
-          updatedAt: Date.now(),
-        },
-      }));
+      setRoomState((prev) => {
+        // Skip if it's the same video (avoids restart loop from duplicate events)
+        if (prev.playback.videoId === data.videoId) {
+          return prev;
+        }
+        return {
+          ...prev,
+          playback: {
+            ...prev.playback,
+            videoId: data.videoId,
+            currentTime: 0,
+            playing: true,
+            updatedAt: Date.now(),
+          },
+        };
+      });
     });
 
     socket.on('role_assigned', (data) => {

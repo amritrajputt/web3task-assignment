@@ -262,9 +262,31 @@ export default function RoomPage() {
 
   }, [playback.videoId]);
 
+  // Track what we last synced to the player to avoid redundant operations
+  const lastSyncedRef = useRef<{ videoId: string | null; playing: boolean; currentTime: number }>(
+    { videoId: null, playing: false, currentTime: 0 }
+  );
+
   useEffect(() => {
     const player = playerRef.current;
     if (!player || !playback.videoId || !playerReady) return;
+
+    const last = lastSyncedRef.current;
+
+    // Skip if playback state hasn't meaningfully changed
+    if (
+      last.videoId === playback.videoId &&
+      last.playing === playback.playing &&
+      Math.abs(last.currentTime - playback.currentTime) < 2
+    ) {
+      return;
+    }
+
+    lastSyncedRef.current = {
+      videoId: playback.videoId,
+      playing: playback.playing,
+      currentTime: playback.currentTime,
+    };
 
     ignoreStateChange.current = true;
 
@@ -293,7 +315,12 @@ export default function RoomPage() {
     } finally {
       setTimeout(() => { ignoreStateChange.current = false; }, 300);
     }
-  }, [playerReady, playback.playing, playback.currentTime, playback.videoId, playback.updatedAt]);
+  }, [playerReady, playback.playing, playback.currentTime, playback.videoId]);
+
+  // Use a ref to access latest playback state in the interval without
+  // causing the interval to be recreated on every state change
+  const playbackRef = useRef(playback);
+  playbackRef.current = playback;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -306,8 +333,9 @@ export default function RoomPage() {
         setCurrentTime(curr);
         setDuration(dur);
 
-        if (!participant?.canControl && playback.playing && playback.updatedAt) {
-          const liveTime = playback.currentTime + (Date.now() - playback.updatedAt) / 1000;
+        const pb = playbackRef.current;
+        if (!participant?.canControl && pb.playing && pb.updatedAt) {
+          const liveTime = pb.currentTime + (Date.now() - pb.updatedAt) / 1000;
           if (Math.abs(curr - liveTime) > 3) {
             ignoreStateChange.current = true;
             player.seekTo(liveTime, true);
@@ -323,7 +351,7 @@ export default function RoomPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [playerReady, participant?.canControl, playback.playing, playback.currentTime, playback.updatedAt]);
+  }, [playerReady, participant?.canControl]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
